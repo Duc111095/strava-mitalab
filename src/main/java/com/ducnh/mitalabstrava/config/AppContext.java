@@ -2,6 +2,7 @@ package com.ducnh.mitalabstrava.config;
 
 import java.util.Properties;
 
+import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,25 +13,17 @@ import org.springframework.core.env.Environment;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.orm.hibernate5.HibernateTransactionManager;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
+import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
+import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @Configuration
 @PropertySource("classpath:database.properties")
-@EnableTransactionManagement
 public class AppContext {
 	@Autowired
 	private Environment environment;
-	
-	@Bean
-	public LocalSessionFactoryBean sessionFactory() {
-		LocalSessionFactoryBean sessionFactory = new LocalSessionFactoryBean();
-		sessionFactory.setDataSource(dataSource());
-		sessionFactory.setPackagesToScan(new String[] {
-				"com.ducnh.mitalabstrava"
-		});
-		sessionFactory.setHibernateProperties(hibernateProperties());
-		return sessionFactory;
-	}
 	
 	@Bean
 	public DataSource dataSource() {
@@ -52,10 +45,19 @@ public class AppContext {
 	}
 	
 	@Bean
-	public HibernateTransactionManager getTransactionManager() {
-		HibernateTransactionManager transactionManager = new HibernateTransactionManager();
-		transactionManager.setSessionFactory(sessionFactory().getObject());
-		return transactionManager;
+	public PlatformTransactionManager transactionManager() {
+		return new JpaTransactionManager(entityManagerFactory());
 	}
 	
+	@Bean
+	public EntityManagerFactory entityManagerFactory() {
+		LocalContainerEntityManagerFactoryBean factoryBean = new LocalContainerEntityManagerFactoryBean();
+		factoryBean.setPackagesToScan("com.ducnh.mitalabstrava");
+		factoryBean.setDataSource(dataSource());
+		factoryBean.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
+		factoryBean.setJpaProperties(hibernateProperties());
+		factoryBean.afterPropertiesSet();
+		return factoryBean.getNativeEntityManagerFactory();
+	}
+ 	
 }

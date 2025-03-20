@@ -1,6 +1,10 @@
 package com.ducnh.mitalabstrava.controller;
 
+
+import java.util.List;
+
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.threeten.bp.OffsetDateTime;
 
@@ -9,37 +13,37 @@ import io.swagger.client.ApiException;
 import io.swagger.client.Configuration;
 import io.swagger.client.api.ActivitiesApi;
 import io.swagger.client.auth.*;
-import io.swagger.client.model.DetailedActivity;
+import io.swagger.client.model.DetailedAthlete;
+import io.swagger.client.model.SummaryActivity;
 
 @Controller
 public class ActivitiesController {
+	
 	@GetMapping("/activities")
-	public String getActivities() {
+	public String getActivities(Model theModel) {
+		// Get Code from authorization -> accessToken -> refreshToken
+		
 		ApiClient defaultClient = Configuration.getDefaultApiClient();
 		
 		OAuth strava_oauth = (OAuth) defaultClient.getAuthentication("strava_oauth");
-		strava_oauth.setAccessToken("TOKEN");
+		strava_oauth.setAccessToken("c416a2f615c0afb270fda2a04d0a6f0638195038");
 		ActivitiesApi apiInstance = new ActivitiesApi();
-		String name = "Duc's activity";
-		String sportType = "sportType_example";
-		OffsetDateTime startDateLocal = OffsetDateTime.now();
-		String type = "Run";
-		String description = "description_example";
-		Float distance = 3.4F;
-		Integer trainer = 56;
-		Integer commute = 56;
+		Integer before = 56;
+		Integer after = 56;
+		Integer page = 1;
+		Integer perPage = 30;
 		
 		try {
-			DetailedActivity result = apiInstance.createActivity(name, sportType, startDateLocal, commute, type
-					, description, distance, trainer, commute);
-			System.out.println(result);
+			List<SummaryActivity> result = apiInstance.getLoggedInAthleteActivities(before, after, page, perPage);
+			theModel.addAttribute("result", result);
+
 		} catch (ApiException e) {
 			System.err.println("Exception when calling ActivitiesApi");
 			e.printStackTrace();
-			
+			theModel.addAttribute("result", e.getMessage());
 		}
 		
-		return "activity.jsp";
+		return "activity";
 	}
 	
 }
