@@ -7,6 +7,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -29,9 +34,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService{
 
 	@Autowired
 	private UserRepository userRepository;
-	
-	@Autowired
-	private ApplicationContext context;
 
 	@Override
 	public OAuth2User loadUser(OAuth2UserRequest oAuth2UserRequest) throws OAuth2AuthenticationException {
@@ -55,8 +57,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService{
 		}
 		
 		logger.info("On CustomOAuth2UserService processUser...");
-		OAuth2AuthenticationToken authOAuth2 = (OAuth2AuthenticationToken) context.getBean("oAuth2AuthenticationToken");  
-		logger.info(authOAuth2.getAuthorizedClientRegistrationId());
+		
 		Optional<User> userOptional = userRepository.findByEmail(oAuth2UserInfo.getEmail());
 		User user;
 		if (userOptional.isPresent()) {

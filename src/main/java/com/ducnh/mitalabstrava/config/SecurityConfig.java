@@ -1,5 +1,7 @@
 package com.ducnh.mitalabstrava.config;
 
+import java.util.function.Consumer;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,8 +19,11 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProvider;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProviderBuilder;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
@@ -43,7 +48,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter{
 
 	@Autowired
 	private CustomOAuth2UserService customOAuth2UserService;
-	
+
+	@Autowired
+	private ClientRegistrationRepository clientRegistrationRepository;
+
 	@Autowired
 	private OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 	
@@ -115,7 +123,15 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter{
 					.authenticated()
 				.and()
 			.logout(l -> l.logoutSuccessUrl("/").permitAll())
-			.oauth2Login();
+			.oauth2Client()
+			.and()
+			.oauth2Login(oauth2 -> oauth2
+					.authorizationEndpoint(authorization -> authorization
+							.authorizationRequestResolver(
+								authorizationRequestResolver(this.clientRegistrationRepository)
+							)
+						)
+					);
 		
 		// Add our custom token based authentication filter
 		http.addFilterBefore(tokenAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
@@ -138,5 +154,21 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter{
 		authorizedClientManager.setAuthorizedClientProvider(authorizedClientProvider);
 		//authorizedClientManager.setAuthorizationFailureHandler(null);
 		return authorizedClientManager;
-	}			
+	}
+	private OAuth2AuthorizationRequestResolver authorizationRequestResolver(
+			ClientRegistrationRepository clientRegistrationRepository) {
+
+		DefaultOAuth2AuthorizationRequestResolver authorizationRequestResolver =
+				new DefaultOAuth2AuthorizationRequestResolver(
+						clientRegistrationRepository, "/oauth2/authorization");
+		authorizationRequestResolver.setAuthorizationRequestCustomizer(
+				authorizationRequestCustomizer());
+
+		return  authorizationRequestResolver;
+	}
+
+	private Consumer<OAuth2AuthorizationRequest.Builder> authorizationRequestCustomizer() {
+		return customizer -> customizer
+					.additionalParameters(params -> params.put("prompt", "consent"));
+	}
 }
